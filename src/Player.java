@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 
 public class Player {
     // Position in X- und Y-Richtung
@@ -53,6 +55,20 @@ public class Player {
         loadWalkAnimation();
         if (!walkFrames.isEmpty()) {
             currentImage = walkFrames.get(0);
+        }
+
+        // Hintergrund-Musik starten
+        playSound("assets/Sound/soundtrack.wav");
+    }
+
+    public void playSound(String path) {
+        File lol = new File(path);
+        try {
+            Clip clip = AudioSystem.getClip();
+            clip.open(AudioSystem.getAudioInputStream(lol));
+            clip.start();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -154,6 +170,7 @@ public class Player {
         if (jumping && onGround) {
             velocityY = -jumpPower;
             onGround = false;
+            playSound("assets/Sound/jump1.wav"); // Jump-Sound abspielen
         }
 
         // Schwerkraft anwenden
@@ -245,11 +262,11 @@ public class Player {
 
         for (Tile tile : tiles) {
             if (this.boundingBox.intersect(tile.getBoundingBox())) {
-                // Kollision erkannt - bestimme die Richtung und reagiere
+                // Kollision erkannt
                 Vec2 overlap = this.boundingBox.overlapSize(tile.getBoundingBox());
                 BoundingBox tileBB = tile.getBoundingBox();
 
-                // Bestimme Kollisionsrichtung basierend auf kleinster Überlappung
+                // Bestimme Kollisionsrichtung
                 if (overlap.x < overlap.y) {
                     // Horizontale Kollision
                     if (pos.x < tileBB.minX) {
@@ -264,25 +281,21 @@ public class Player {
                 } else {
                     // Vertikale Kollision
                     if (pos.y < tileBB.minY) {
-                        // Player über Tile - schiebe nach oben
+                        // Player über Tile muss nach oben
                         pos.y = tileBB.minY - height;
                         velocityY = 0;
                         onGround = true;
                     } else {
-                        // Player unter Tile - schiebe nach unten
+                        // Player unter Tile muss nach unten
                         pos.y = tileBB.maxY;
                         velocityY = 0;
                     }
                 }
 
-                // BoundingBox nach Positionskorrektur aktualisieren
+                // BoundingBox aktualisieren
                 updateBoundingBox();
             }
         }
-    }
-
-    public void move() {
-        // Diese Methode kann leer bleiben - alles passiert in update()
     }
 
     public BufferedImage getImage() {
@@ -304,11 +317,6 @@ public class Player {
         return original;
     }
 
-    // BoundingBox getter
-    public BoundingBox getBoundingBox() {
-        return boundingBox;
-    }
-
     // Zustand-Steuerung
     public void setJumping(boolean jumping) {
         this.jumping = jumping;
@@ -321,7 +329,4 @@ public class Player {
     public void setWalkingRight(boolean walkingRight) {
         this.walkingRight = walkingRight;
     }
-
-    // Getter
-    public Point.Float getPos() { return pos; }
 }
