@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/Enemies" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/HUD" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/Items" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/Player" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/Sound" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/Tiles" />
+      <excludeFolder url="file://$MODULE_DIR$/assets/Vector" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
