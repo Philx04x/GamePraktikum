@@ -57,7 +57,7 @@ public class Player {
             currentImage = walkFrames.get(0);
         }
 
-        // Hintergrund-Musik starten
+        // Musik starten
         playSound("assets/Sound/soundtrack.wav");
     }
 
@@ -258,7 +258,7 @@ public class Player {
 
     public void checkCollision() {
         ArrayList<Tile> tiles = level.getTiles();
-        onGround = false; // Reset onGround status
+        onGround = false;
 
         for (Tile tile : tiles) {
             if (this.boundingBox.intersect(tile.getBoundingBox())) {
@@ -270,11 +270,11 @@ public class Player {
                 if (overlap.x < overlap.y) {
                     // Horizontale Kollision
                     if (pos.x < tileBB.minX) {
-                        // Player links von Tile - schiebe nach links
+                        // Player links von Tile, schiebe nach links
                         pos.x = tileBB.minX - width;
                         velocityX = 0;
                     } else {
-                        // Player rechts von Tile - schiebe nach rechts
+                        // Player rechts von Tile, schiebe nach rechts
                         pos.x = tileBB.maxX;
                         velocityX = 0;
                     }
