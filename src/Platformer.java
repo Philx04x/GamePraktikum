@@ -9,10 +9,11 @@ import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serial;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import javax.swing.Timer;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -30,6 +31,10 @@ public class Platformer extends JFrame {
         //exit program when window is closed
         this.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
+                if (gameTimer != null) {
+                    gameTimer.cancel();
+                }
+
                 System.exit(0);
             }
         });
@@ -61,9 +66,14 @@ public class Platformer extends JFrame {
             createBufferStrategy(2);
             bufferStrategy = this.getBufferStrategy();
 
-            // Game Timer für Animation
-            gameTimer = new Timer(16, e -> updateGameStateAndRepaint());
-            gameTimer.start();
+            // Game Timer mit TimerTask - alle 10ms
+            gameTimer = new Timer();
+            gameTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    updateGameStateAndRepaint();
+                }
+            }, 0, 10); // 0ms Verzögerung, dann alle 10ms
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -72,13 +82,21 @@ public class Platformer extends JFrame {
     }
 
     private void updateGameStateAndRepaint() {
-        l.update();
+        if (l != null) {
+            l.update();
+        }
         if (player != null) {
             player.update();
-            player.move();
+            checkCollision();
         }
 
         repaint();
+    }
+
+    private void checkCollision() {
+        if (player != null) {
+            player.checkCollision();
+        }
     }
 
     public void paint(Graphics g) {
@@ -123,37 +141,32 @@ public class Platformer extends JFrame {
             this.p = p;
         }
 
-        // Komplette Key Handler Klasse für freie Bewegung in alle Richtungen:
-
         @Override
         public void keyPressed(KeyEvent event) {
             int keyCode = event.getKeyCode();
 
             if (keyCode == KeyEvent.VK_ESCAPE) {
+                if (gameTimer != null) {
+                    gameTimer.cancel();
+                }
                 dispose();
             }
 
-            // Player-Steuerung - WASD oder Pfeiltasten
+            // Player-Steuerung - neue Zustände
             if (player != null) {
                 // Links
                 if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
-                    player.setMovingLeft(true);
+                    player.setWalkingLeft(true);
                 }
                 // Rechts
                 if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
-                    player.setMovingRight(true);
+                    player.setWalkingRight(true);
                 }
-                // Hoch
-                if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
-                    player.setMovingUp(true);
-                }
-                // Runter
-                if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
-                    player.setMovingDown(true);
+                // Springen
+                if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_SPACE) {
+                    player.setJumping(true);
                 }
             }
-
-            updateGameStateAndRepaint();
         }
 
         @Override
@@ -163,19 +176,15 @@ public class Platformer extends JFrame {
             if (player != null) {
                 // Links
                 if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
-                    player.setMovingLeft(false);
+                    player.setWalkingLeft(false);
                 }
                 // Rechts
                 if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
-                    player.setMovingRight(false);
+                    player.setWalkingRight(false);
                 }
-                // Hoch
-                if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
-                    player.setMovingUp(false);
-                }
-                // Runter
-                if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
-                    player.setMovingDown(false);
+                // Springen
+                if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP || keyCode == KeyEvent.VK_SPACE) {
+                    player.setJumping(false);
                 }
             }
         }

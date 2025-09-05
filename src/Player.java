@@ -11,6 +11,9 @@ public class Player {
     // Position in X- und Y-Richtung
     public Point.Float pos;
 
+    // BoundingBox für Kollisionserkennung
+    private BoundingBox boundingBox;
+
     // Animation
     private List<BufferedImage> walkFrames;
     private BufferedImage currentImage;
@@ -18,17 +21,22 @@ public class Player {
     private int animationCounter = 0;
     private final int animationSpeed = 6; // Frames zwischen Updates
 
-    // Bewegungsgeschwindigkeit
-    private final float moveSpeed = 4f;
+    // Physik
+    private float velocityX = 0f;
+    private float velocityY = 0f;
+    private final float gravity = 0.5f;
+    private final float airResistance = 0.98f;
+    private final float walkSpeed = 3f;
+    private final float jumpPower = 12f;
 
-    // Zustand
-    private boolean movingLeft = false;
-    private boolean movingRight = false;
-    private boolean movingUp = false;
-    private boolean movingDown = false;
+    // Neue Zustände
+    private boolean jumping = false;
+    private boolean walkingLeft = false;
+    private boolean walkingRight = false;
     private boolean facingRight = true;
+    private boolean onGround = false;
 
-    // Level-Referenz für Kamera
+    // Level-Referenz
     private Level level;
 
     // Spielfigur-Größe
@@ -38,6 +46,9 @@ public class Player {
     public Player(float startX, float startY, Level level) {
         this.pos = new Point.Float(startX, startY);
         this.level = level;
+
+        // BoundingBox initialisieren
+        this.boundingBox = new BoundingBox(startX, startY, startX + width, startY + height);
 
         loadWalkAnimation();
         if (!walkFrames.isEmpty()) {
@@ -128,28 +139,56 @@ public class Player {
     }
 
     public void update() {
-        // Bewegung in alle Richtungen
-        if (movingLeft) {
-            pos.x -= moveSpeed;
+        // Bewegung entsprechend der Zustände
+        if (walkingLeft) {
+            velocityX = -walkSpeed;
             facingRight = false;
-        }
-        if (movingRight) {
-            pos.x += moveSpeed;
+        } else if (walkingRight) {
+            velocityX = walkSpeed;
             facingRight = true;
-        }
-        if (movingUp) {
-            pos.y -= moveSpeed;
-        }
-        if (movingDown) {
-            pos.y += moveSpeed;
+        } else {
+            velocityX = 0;
         }
 
-        // Grenzen des Levels prüfen
+        // Sprung nur wenn am Boden
+        if (jumping && onGround) {
+            velocityY = -jumpPower;
+            onGround = false;
+        }
+
+        // Schwerkraft anwenden
+        velocityY += gravity;
+
+        // Luftreibung anwenden
+        velocityX *= airResistance;
+        velocityY *= airResistance;
+
+        // Position aktualisieren
+        pos.x += velocityX;
+        pos.y += velocityY;
+
+        // Sicherstellen, dass Spielfigur das Level nicht verlässt
         BufferedImage levelImg = (BufferedImage) level.getResultingImage();
-        if (pos.x < 0) pos.x = 0;
-        if (pos.x > levelImg.getWidth() - width) pos.x = levelImg.getWidth() - width;
-        if (pos.y < 0) pos.y = 0;
-        if (pos.y > levelImg.getHeight() - height) pos.y = levelImg.getHeight() - height;
+        if (pos.x < 0) {
+            pos.x = 0;
+            velocityX = 0;
+        }
+        if (pos.x > levelImg.getWidth() - width) {
+            pos.x = levelImg.getWidth() - width;
+            velocityX = 0;
+        }
+        if (pos.y < 0) {
+            pos.y = 0;
+            velocityY = 0;
+        }
+        if (pos.y > levelImg.getHeight() - height) {
+            pos.y = levelImg.getHeight() - height;
+            velocityY = 0;
+            onGround = true;
+        }
+
+        // BoundingBox aktualisieren
+        updateBoundingBox();
 
         // Animation aktualisieren
         updateAnimation();
@@ -158,9 +197,13 @@ public class Player {
         updateCamera();
     }
 
+    private void updateBoundingBox() {
+        boundingBox.updatePosition(pos.x, pos.y, width, height);
+    }
+
     private void updateAnimation() {
         // Animation nur wenn sich bewegt
-        if (movingLeft || movingRight || movingUp || movingDown) {
+        if (walkingLeft || walkingRight) {
             // Laufanimation
             animationCounter++;
             if (animationCounter >= animationSpeed) {
@@ -196,6 +239,48 @@ public class Player {
         }
     }
 
+    public void checkCollision() {
+        ArrayList<Tile> tiles = level.getTiles();
+        onGround = false; // Reset onGround status
+
+        for (Tile tile : tiles) {
+            if (this.boundingBox.intersect(tile.getBoundingBox())) {
+                // Kollision erkannt - bestimme die Richtung und reagiere
+                Vec2 overlap = this.boundingBox.overlapSize(tile.getBoundingBox());
+                BoundingBox tileBB = tile.getBoundingBox();
+
+                // Bestimme Kollisionsrichtung basierend auf kleinster Überlappung
+                if (overlap.x < overlap.y) {
+                    // Horizontale Kollision
+                    if (pos.x < tileBB.minX) {
+                        // Player links von Tile - schiebe nach links
+                        pos.x = tileBB.minX - width;
+                        velocityX = 0;
+                    } else {
+                        // Player rechts von Tile - schiebe nach rechts
+                        pos.x = tileBB.maxX;
+                        velocityX = 0;
+                    }
+                } else {
+                    // Vertikale Kollision
+                    if (pos.y < tileBB.minY) {
+                        // Player über Tile - schiebe nach oben
+                        pos.y = tileBB.minY - height;
+                        velocityY = 0;
+                        onGround = true;
+                    } else {
+                        // Player unter Tile - schiebe nach unten
+                        pos.y = tileBB.maxY;
+                        velocityY = 0;
+                    }
+                }
+
+                // BoundingBox nach Positionskorrektur aktualisieren
+                updateBoundingBox();
+            }
+        }
+    }
+
     public void move() {
         // Diese Methode kann leer bleiben - alles passiert in update()
     }
@@ -219,21 +304,22 @@ public class Player {
         return original;
     }
 
-    // Input-Methoden
-    public void setMovingLeft(boolean moving) {
-        this.movingLeft = moving;
+    // BoundingBox getter
+    public BoundingBox getBoundingBox() {
+        return boundingBox;
     }
 
-    public void setMovingRight(boolean moving) {
-        this.movingRight = moving;
+    // Zustand-Steuerung
+    public void setJumping(boolean jumping) {
+        this.jumping = jumping;
     }
 
-    public void setMovingUp(boolean moving) {
-        this.movingUp = moving;
+    public void setWalkingLeft(boolean walkingLeft) {
+        this.walkingLeft = walkingLeft;
     }
 
-    public void setMovingDown(boolean moving) {
-        this.movingDown = moving;
+    public void setWalkingRight(boolean walkingRight) {
+        this.walkingRight = walkingRight;
     }
 
     // Getter

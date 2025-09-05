@@ -16,6 +16,9 @@ public class Level {
     public static ArrayList<BufferedImage> tileImages = new ArrayList<>();
     public int tileSize = 70;
 
+    // Neue ArrayList für Tiles
+    private ArrayList<Tile> tiles = new ArrayList<>();
+
     public Level(String levelMapPath) {
         try {
             lvlSize = new Vec2(0, 0);
@@ -71,6 +74,10 @@ public class Level {
                 if (tileIndex < 0)
                     continue;
 
+                // Tile zur Liste hinzufügen
+                Tile tile = new Tile(x * tileSize, y * tileSize, tileSize, tileIndex);
+                tiles.add(tile);
+
                 g2d.drawImage(tileImages.get(tileIndex), null, x * tileSize, y * tileSize);
             }
         }
@@ -79,5 +86,10 @@ public class Level {
 
     public Image getResultingImage() {
         return resultingLevelImg;
+    }
+
+    // Getter für Tiles
+    public ArrayList<Tile> getTiles() {
+        return tiles;
     }
 }
